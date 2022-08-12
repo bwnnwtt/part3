@@ -1,5 +1,21 @@
 const express = require('express')
+const morgan = require('morgan')
 const app = express()
+
+const customLogger = (tokens,req,res) => {
+  return [
+    tokens.method(req, res),
+    tokens.url(req, res),
+    tokens.status(req, res),
+    tokens.res(req, res, 'content-length'), '-',
+    tokens['response-time'](req, res), 'ms',
+    JSON.stringify(req.body)
+  ].join(' ')
+}
+
+
+app.use(express.json())
+app.use(morgan(customLogger))
 
 let persons = [
       { 
@@ -21,11 +37,6 @@ let persons = [
         "id": 4,
         "name": "Mary Poppendieck", 
         "number": "39-23-6423122"
-      },
-      {
-        "id": 5,
-        "name": "PJJ", 
-        "number": "69420"
       }
     ]
   
@@ -41,6 +52,41 @@ app.get('/api/persons/:id', (request, response) => {
     } else {
         response.status(404).end()
     }
+})
+
+app.post('/api/persons', (request, response) => {
+  const body = request.body
+
+  if(request.headers['content-type'] !== 'application/json') {
+    return response.status(400).json({ 
+      error: 'bad request' 
+    })
+  }
+  if (!body.name || !body.number) {
+    return response.status(400).json({ 
+      error: 'name or number is missing' 
+    })
+  }
+  if (persons.map(person => person.name).find(name => name === body.name) !== undefined) {
+    return response.status(400).json({ 
+      error: 'name already exists in phonebook' 
+    })
+  }
+
+  const existingIds = persons.map(person => person.id)
+  let newId = parseInt(Math.random() * 1000)
+
+  while(typeof(existingIds.find(id => id === newId)) === "number") {
+    newId = parseInt(Math.random() * 1000)
+  }
+
+  const person = request.body
+  person.id = newId
+  
+  // console.log("person",person)
+  persons = persons.concat(person)
+
+  response.json(person)
 })
 
 app.delete('/api/persons/:id', (request, response) => {
