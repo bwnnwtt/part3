@@ -1,5 +1,7 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
+
 const app = express()
 
 const customLogger = (tokens,req,res) => {
@@ -13,8 +15,9 @@ const customLogger = (tokens,req,res) => {
   ].join(' ')
 }
 
-
+app.use(cors())
 app.use(express.json())
+app.use(express.static('build'))
 app.use(morgan(customLogger))
 
 let persons = [
@@ -101,7 +104,7 @@ app.get('/info', (request, response) => {
     response.send(`<div>Phonebook has info for ${persons.length} people</div><div>${date}</div>`)
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
 console.log(`Server running on port ${PORT}`)
 })
