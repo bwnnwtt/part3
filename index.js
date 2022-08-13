@@ -1,6 +1,8 @@
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+require('dotenv').config()
+const Person = require('./models/person')
 
 const app = express()
 
@@ -20,31 +22,10 @@ app.use(express.json())
 app.use(express.static('build'))
 app.use(morgan(customLogger))
 
-let persons = [
-      { 
-        "id": 1,
-        "name": "Arto Hellas", 
-        "number": "040-123456"
-      },
-      { 
-        "id": 2,
-        "name": "Ada Lovelace", 
-        "number": "39-44-5323523"
-      },
-      { 
-        "id": 3,
-        "name": "Dan Abramov", 
-        "number": "12-43-234345"
-      },
-      { 
-        "id": 4,
-        "name": "Mary Poppendieck", 
-        "number": "39-23-6423122"
-      }
-    ]
-  
 app.get('/api/persons', (request, response) => {
+  Person.find({}).then(persons => {
     response.json(persons)
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -70,26 +51,22 @@ app.post('/api/persons', (request, response) => {
       error: 'name or number is missing' 
     })
   }
-  if (persons.map(person => person.name).find(name => name === body.name) !== undefined) {
-    return response.status(400).json({ 
-      error: 'name already exists in phonebook' 
-    })
-  }
+  Person.find({}).then(persons => {
+    if (persons.map(person => person.name).find(name => name === body.name) !== undefined) {
+      return response.status(400).json({ 
+        error: 'name already exists in phonebook' 
+      })
+    }
+  })
 
-  const existingIds = persons.map(person => person.id)
-  let newId = parseInt(Math.random() * 1000)
+  const person = new Person({
+    name: body.name,
+    number: body.number
+  })
 
-  while(typeof(existingIds.find(id => id === newId)) === "number") {
-    newId = parseInt(Math.random() * 1000)
-  }
-
-  const person = request.body
-  person.id = newId
-  
-  // console.log("person",person)
-  persons = persons.concat(person)
-
-  response.json(person)
+  person.save().then(savedPerson => {
+    response.json(savedPerson)
+  })
 })
 
 app.delete('/api/persons/:id', (request, response) => {
